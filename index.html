@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>도전 카드 뽑기</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #111;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 3열: 왼쪽 점수판 / 가운데 메인 / 오른쪽 카드현황 */
+    .wrap {
+      width: 100%;
+      max-width: 1060px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 260px 1fr 280px;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 14px;
+      height: fit-content;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 18px;
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+    }
+
+    h1 { font-size: 22px; margin: 6px 0 10px; }
+
+    #timer {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      height: 28px;
+      color: #f1c40f;
+      text-shadow: 0 0 6px rgba(241, 196, 15, 0.5);
+    }
+
+    .slot {
+      position: relative;
+      height: 150px;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #1c1c1c;
+      margin: 14px 0 14px;
+    }
+
+    .reel {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      text-align: center;
+      transform: translateY(0px);
+    }
+
+    .item {
+      height: 50px;
+      line-height: 50px;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 0 10px;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .selector {
+      position: absolute;
+      top: 50px;
+      height: 50px;
+      width: 100%;
+      border-top: 2px solid #e63946;
+      border-bottom: 2px solid #e63946;
+      pointer-events: none;
+    }
+
+    #desc {
+      margin-top: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #222;
+      font-size: 15px;
+      line-height: 1.6;
+      display: none;
+      text-align: left;
+      white-space: pre-line;
+    }
+
+    .btn {
+      width: 100%;
+      font-size: 18px;
+      padding: 14px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 800;
+    }
+    .start { background: #2d6cdf; }
+    .pick  { background: #e63946; }
+    .stop  { background: #f1c40f; color:#111; }
+    .end   { background: #444; }
+    .mute  { background: #333; font-weight: 700; }
+
+    .small {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 8px;
+    }
+    .ghost { visibility: hidden; }
+
+    /* 패널 타이틀 */
+    .panel h2 {
+      font-size: 15px;
+      margin: 2px 0 10px;
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 오른쪽: 뽑힌 카드 */
+    .pickedList {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .pickedItem {
+      background: #1b1b1b;
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .pickedTitle {
+      font-size: 14px;
+      font-weight: 800;
+      opacity: 0.95;
+    }
+    .pickedDesc {
+      display: none;
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.55;
+      opacity: 0.92;
+      white-space: pre-line;
+    }
+
+    /* 왼쪽: 점수판 */
+    .scoreHint { font-size: 12px; opacity: 0.75; margin-bottom: 10px; line-height: 1.4; }
+
+    .scoreRows {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .scoreRow {
+      display: grid;
+      grid-template-columns: 1fr 70px 32px;
+      gap: 8px;
+      align-items: center;
+      background: #1b1b1b;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .scoreRow input {
+      width: 100%;
+      border: none;
+      outline: none;
+      border-radius: 10px;
+      padding: 10px 10px;
+      background: #141414;
+      color: #fff;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .scoreRow input[type="number"] {
+      text-align: center;
+    }
+    .delBtn {
+      width: 32px;
+      height: 38px;
+      border: none;
+      border-radius: 10px;
+      background: #2a2a2a;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 900;
+    }
+    .addRowBtn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      background: #2a2a2a;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 800;
+      margin-top: 10px;
+    }
+
+    .sortedView {
+      margin-top: 12px;
+      background: #1b1b1b;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .sortedViewTitle {
+      font-size: 13px;
+      font-weight: 800;
+      opacity: 0.9;
+      margin-bottom: 6px;
+    }
+    .sortedList {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+    .sortedItem {
+      display: flex;
+      justify-content: space-between;
+      background: #141414;
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .sortedName { font-weight: 800; }
+    .sortedScore { opacity: 0.9; }
+
+    /* 성공/실패 카운터 */
+    .counterBox {
+      margin-top: 12px;
+      background: #1b1b1b;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .counterRow {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+      background: #141414;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .counterLabel { font-weight: 900; font-size: 13px; }
+    .counterValue { font-weight: 900; font-size: 14px; opacity: 0.95; min-width: 22px; text-align:center; }
+    .miniBtn {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 900;
+      background: #2a2a2a;
+      color: #fff;
+    }
+    .miniBtn.plus { background: #2d6cdf; }
+    .miniBtn.minus { background: #444; }
+
+    @media (max-width: 980px) {
+      .wrap { grid-template-columns: 1fr; }
+      .panel.left { order: 2; }
+      .app { order: 1; }
+      .panel.right { order: 3; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- 왼쪽: 트롤 점수 + 성공/실패 -->
+    <div class="panel left">
+      <h2>📊 트롤 점수</h2>
+      <div class="scoreHint">
+        이름/점수는 여기서 바로 수정 가능<br>
+        아래 "정렬 현황"은 점수 높은 순으로 자동 표시됨
+      </div>
+
+      <div class="scoreRows" id="scoreRows"></div>
+      <button class="addRowBtn" onclick="addScoreRow()">+ 인원 추가</button>
+
+      <div class="sortedView">
+        <div class="sortedViewTitle">정렬 현황 (점수 높은 순)</div>
+        <div class="sortedList" id="sortedList"></div>
+      </div>
+
+      <div class="counterBox">
+        <div class="sortedViewTitle">성공 / 실패 현황</div>
+
+        <div class="counterRow">
+          <div class="counterLabel">성공</div>
+          <button class="miniBtn minus" onclick="incCounter('success', -1)">-</button>
+          <div class="counterValue" id="successVal">0</div>
+          <button class="miniBtn plus" onclick="incCounter('success', 1)">+</button>
+        </div>
+
+        <div class="counterRow">
+          <div class="counterLabel">실패</div>
+          <button class="miniBtn minus" onclick="incCounter('fail', -1)">-</button>
+          <div class="counterValue" id="failVal">0</div>
+          <button class="miniBtn plus" onclick="incCounter('fail', 1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 가운데: 메인 -->
+    <div class="app">
+      <h1>🃏 도전 카드 뽑기</h1>
+      <div id="timer"></div>
+
+      <div class="slot">
+        <div class="reel" id="reel"></div>
+        <div class="selector"></div>
+      </div>
+
+      <div id="desc"></div>
+
+      <button class="btn start" onclick="startGame()">게임 시작(클릭X)</button>
+      <button class="btn pick"  onclick="startSpin()">카드 뽑기(돌리기)</button>
+      <button class="btn stop"  onclick="stopSpin()">스탑(선택)</button>
+      <button class="btn mute"  onclick="toggleSound()" id="soundBtn">🔊 사운드 ON</button>
+      <button class="btn end"   onclick="endGame()">게임 종료(클릭X)</button>
+
+      <div class="small" id="remain"></div>
+    </div>
+
+    <!-- 오른쪽: 뽑힌 카드 현황 -->
+    <div class="panel right">
+      <h2>📌 현재 뽑힌 카드</h2>
+      <div class="pickedList" id="pickedList"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 카드 목록 =====
+    const CARDS = [
+      "레이저 트립와이어",
+      "마스터 키",
+      "모션 감지기",
+      "불청객 2",
+      "지문 스캔",
+      "망막 스캔",
+      "보안 카메라",
+      "역주행",
+      "초대받지 않은 손님",
+      "조커 카드",
+      "균형",
+      "환기구",
+      "소음 감지 센서",
+      "정전"
+    ];
+
+    const CARD_DESC = {
+      "레이저 트립와이어":
+`라운드 2의 커뮤니티 카드에 J, Q, K 중 어느 것도 없다면 다음 효과가 발생한다.
+라운드 1에서 가장 높은 가치의 흰색 칩을 가진 플레이어는 자신의 포켓 카드를 모두 앞면이 보이지 않게 버린 뒤, 덱에서 새로운 포켓 카드를 다시 뽑아야 한다.`,
+
+      "마스터 키":
+`조커 카드 1장이 덱에 추가된다.
+(조커 카드는 만들 수 있는 가장 높은 족보를 기준으로 항상 우선 적용된다.)`,
+
+      "모션 감지기":
+`라운드 2의 커뮤니티 카드 중 하나라도 J, Q, K 중 하나라면 다음 효과가 발생한다.
+라운드 1에서 흰색 1성 칩을 가진 플레이어는 자신의 포켓 카드를 모두 앞면이 보이지 않게 버린 뒤, 덱에서 새로운 포켓 카드를 다시 뽑아야 한다.`,
+
+      "불청객 2":
+`4라운드에 커뮤니티 카드 1장이 추가로 공개된다.
+(역주행과 함께 사용될 경우, 2라운드에 공개된다.)`,
+
+      "지문 스캔":
+`가장 높은 가치의 빨간 칩을 가진 플레이어가 쇼다운에서 자신의 패를 공개하기 전에 발동한다.
+다른 모든 플레이어는 그 플레이어의 패 족보가 무엇일지 하나로 합의해야 한다.
+만약 그 추측이 틀리면, 이번 하이스트는 실패한다.`,
+
+      "망막 스캔":
+`가장 높은 가치의 빨간 칩을 가진 플레이어가 쇼다운에서 자신의 패를 공개하기 전에 발동한다.
+다른 모든 플레이어는 그 플레이어의 포켓 카드에 포함되어 있다고 생각하는 카드 값(2부터 A까지) 하나를 합의해 선택한다.
+만약 그 추측이 틀리면, 이번 하이스트는 실패한다.`,
+
+      "보안 카메라":
+`포켓 카드가 분배된 직후 즉시 발동한다.
+모든 플레이어는 포켓 카드 1장을 추가로 받는다.
+각 플레이어는 총 3장의 포켓 카드로 게임을 진행한다.`,
+
+      "역주행":
+`플롭, 턴, 리버의 공개 순서가 역순으로 진행된다.
+2라운드에 카드 1장, 3라운드에 카드 1장, 4라운드에 카드 3장이 공개된다.`,
+
+      "초대받지 않은 손님":
+`3라운드에 커뮤니티 카드 1장이 추가로 공개된다.`,
+
+      "조커 카드":
+`조커카드를 추가하고 커뮤니티에 공개되면 조커 대신 카드 두 장이 놓여진다.
+각자 그 두 개의 카드 중 만들 수 있는 가장 높은 족보를 기준으로 한 개의 카드만 골라 적용한다.
+포켓 카드에 온다면 조커 대신 덱에서 두 개의 카드를 뽑고 하나를 고른다.`,
+
+      "균형":
+`라운드 1에서는 포켓 카드 1장만 받는다.
+나머지 포켓 카드들은 라운드 2에서 받는다.`,
+
+      "환기구":
+`포켓 카드가 분배된 직후 즉시 발동한다.
+라운드 1, 2, 3에서 가장 높은 가치의 칩을 모두 뒷면(어두운 면)으로 뒤집는다.
+이 칩들은 테이블 중앙에서 가져간 이후에는 소유자가 바뀔 수 없다.`,
+
+      "소음 감지 센서":
+`포켓 카드가 분배된 직후 즉시 발동한다.
+라운드 1, 2, 3의 1성 칩을 모두 뒷면(어두운 면)으로 뒤집는다.
+이 칩들은 테이블 중앙에서 가져간 이후에는 소유자가 바뀔 수 없다.`,
+
+      "정전":
+`라운드 2 시작 시: 모든 플레이어는 라운드 1의 칩을 버린다.
+라운드 3 시작 시: 모든 플레이어는 라운드 2의 칩을 버린다.
+라운드 4 시작 시: 모든 플레이어는 라운드 3의 칩을 버린다.`
+    };
+
+    // ===== 슬롯 설정 =====
+    const ITEM_HEIGHT = 50;
+    const SELECTOR_TOP = 50;
+    const REPEAT = 120;
+    const BASE_SPEED_PX_PER_SEC = 260;
+
+    // ===== 엘리먼트 =====
+    const reel = document.getElementById("reel");
+    const statusEl = document.getElementById("timer");
+    const descBox = document.getElementById("desc");
+    const pickedListEl = document.getElementById("pickedList");
+    const soundBtn = document.getElementById("soundBtn");
+
+    const scoreRowsEl = document.getElementById("scoreRows");
+    const sortedListEl = document.getElementById("sortedList");
+    const successValEl = document.getElementById("successVal");
+    const failValEl = document.getElementById("failVal");
+
+    // ===== 상태 =====
+    let pool = [];
+    let started = false;
+    let spinning = false;
+
+    let pickedHistory = [];
+
+    // RAF loop
+    let rafId = null;
+    let lastT = null;
+    let offsetY = 0;
+
+    // ===== 사운드 =====
+    let audioCtx = null;
+    let soundOn = true;
+    let tickInterval = null;
+
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    function playTick() {
+      if (!soundOn) return;
+      ensureAudio();
+      const t0 = audioCtx.currentTime;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(880, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.10, t0 + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.045);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(t0);
+      osc.stop(t0 + 0.05);
+    }
+
+    function playSelect() {
+      if (!soundOn) return;
+      ensureAudio();
+      const t0 = audioCtx.currentTime;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, t0);
+      osc.frequency.exponentialRampToValueAtTime(1320, t0 + 0.08);
+
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(t0);
+      osc.stop(t0 + 0.2);
+    }
+
+    function startSpinSound() {
+      if (!soundOn) return;
+      ensureAudio();
+      stopSpinSound();
+      tickInterval = setInterval(playTick, 120);
+    }
+    function stopSpinSound() {
+      if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+    }
+
+    function toggleSound() {
+      soundOn = !soundOn;
+      soundBtn.textContent = soundOn ? "🔊 사운드 ON" : "🔇 사운드 OFF";
+      if (!soundOn) stopSpinSound();
+      saveState();
+    }
+
+    // ====== 점수판 + 카운터 상태(localStorage) ======
+    const STORAGE_KEY = "challenge_card_app_state_v1";
+
+    let scoreRows = [
+      { name: "김준수", score: 1 },
+      { name: "플레이어2", score: 0 },
+      { name: "플레이어3", score: 0 }
+    ];
+    let counters = { success: 0, fail: 0 };
+
+    function saveState() {
+      const data = {
+        soundOn,
+        scoreRows,
+        counters,
+        pickedHistory
+      };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+
+        if (typeof data.soundOn === "boolean") soundOn = data.soundOn;
+        if (Array.isArray(data.scoreRows)) scoreRows = data.scoreRows;
+        if (data.counters && typeof data.counters === "object") counters = data.counters;
+        if (Array.isArray(data.pickedHistory)) pickedHistory = data.pickedHistory;
+
+      } catch (e) {}
+    }
+
+    // ====== 점수판 렌더/정렬 ======
+    function renderScoreRows() {
+      scoreRowsEl.innerHTML = "";
+
+      scoreRows.forEach((row, idx) => {
+        const wrap = document.createElement("div");
+        wrap.className = "scoreRow";
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.placeholder = "이름";
+        nameInput.value = row.name ?? "";
+        nameInput.addEventListener("input", (e) => {
+          scoreRows[idx].name = e.target.value;
+          renderSortedScores();
+          saveState();
+        });
+
+        const scoreInput = document.createElement("input");
+        scoreInput.type = "number";
+        scoreInput.placeholder = "점수";
+        scoreInput.value = Number.isFinite(row.score) ? row.score : 0;
+        scoreInput.addEventListener("input", (e) => {
+          const v = parseInt(e.target.value, 10);
+          scoreRows[idx].score = Number.isFinite(v) ? v : 0;
+          renderSortedScores();
+          saveState();
+        });
+
+        const del = document.createElement("button");
+        del.className = "delBtn";
+        del.textContent = "×";
+        del.title = "삭제";
+        del.addEventListener("click", () => {
+          scoreRows.splice(idx, 1);
+          renderScoreRows();
+          renderSortedScores();
+          saveState();
+        });
+
+        wrap.appendChild(nameInput);
+        wrap.appendChild(scoreInput);
+        wrap.appendChild(del);
+
+        scoreRowsEl.appendChild(wrap);
+      });
+
+      renderSortedScores();
+    }
+
+    function renderSortedScores() {
+      sortedListEl.innerHTML = "";
+
+      const filtered = scoreRows
+        .map(r => ({ name: (r.name ?? "").trim(), score: parseInt(r.score, 10) || 0 }))
+        .filter(r => r.name.length > 0);
+
+      filtered.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+
+      if (filtered.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.opacity = "0.75";
+        empty.style.fontSize = "13px";
+        empty.textContent = "표시할 인원이 없습니다.";
+        sortedListEl.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach(r => {
+        const item = document.createElement("div");
+        item.className = "sortedItem";
+
+        const name = document.createElement("div");
+        name.className = "sortedName";
+        name.textContent = r.name;
+
+        const score = document.createElement("div");
+        score.className = "sortedScore";
+        score.textContent = r.score;
+
+        item.appendChild(name);
+        item.appendChild(score);
+        sortedListEl.appendChild(item);
+      });
+    }
+
+    function addScoreRow() {
+      scoreRows.push({ name: "", score: 0 });
+      renderScoreRows();
+      saveState();
+    }
+
+    // ===== 성공/실패 카운터 =====
+    function renderCounters() {
+      successValEl.textContent = counters.success;
+      failValEl.textContent = counters.fail;
+    }
+
+    function incCounter(kind, delta) {
+      if (kind !== "success" && kind !== "fail") return;
+      const next = (counters[kind] || 0) + delta;
+      counters[kind] = Math.max(0, next);
+      renderCounters();
+      saveState();
+    }
+
+    // ===== 오른쪽: 뽑힌 카드 현황 =====
+    function renderPickedList() {
+      pickedListEl.innerHTML = "";
+
+      if (pickedHistory.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.opacity = "0.75";
+        empty.style.fontSize = "13px";
+        empty.textContent = "아직 뽑힌 카드가 없습니다.";
+        pickedListEl.appendChild(empty);
+        return;
+      }
+
+      for (const title of pickedHistory) {
+        const box = document.createElement("div");
+        box.className = "pickedItem";
+
+        const t = document.createElement("div");
+        t.className = "pickedTitle";
+        t.textContent = title;
+
+        const d = document.createElement("div");
+        d.className = "pickedDesc";
+        d.textContent = CARD_DESC[title] || "";
+
+        box.appendChild(t);
+        box.appendChild(d);
+
+        box.addEventListener("click", () => {
+          d.style.display = (d.style.display === "block") ? "none" : "block";
+        });
+
+        pickedListEl.appendChild(box);
+      }
+    }
+
+    // ===== 슬롯 UI/로직 =====
+    function buildReel() {
+      reel.innerHTML = "";
+      for (let i = 0; i < REPEAT; i++) {
+        for (const name of CARDS) {
+          const div = document.createElement("div");
+          div.className = "item";
+          div.textContent = name;
+          reel.appendChild(div);
+        }
+      }
+      offsetY = 0;
+      reel.style.transform = "translateY(0px)";
+    }
+
+    function showOnlyPicked(picked) {
+      reel.innerHTML = `
+        <div class="item ghost">&nbsp;</div>
+        <div class="item" style="visibility:visible;">${picked}</div>
+        <div class="item ghost">&nbsp;</div>
+      `;
+      offsetY = 0;
+      reel.style.transform = "translateY(0px)";
+    }
+
+    function updateRemain() {
+      document.getElementById("remain").textContent =
+        `남은 카드 수: ${pool.length}`;
+    }
+
+    function stopRaf() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+      lastT = null;
+    }
+
+    function loop(t) {
+      if (!spinning) return;
+
+      if (lastT == null) lastT = t;
+      const dt = (t - lastT) / 1000;
+      lastT = t;
+
+      offsetY -= BASE_SPEED_PX_PER_SEC * dt;
+
+      const cycleH = CARDS.length * ITEM_HEIGHT;
+      if (offsetY <= -cycleH) offsetY += cycleH;
+
+      reel.style.transform = `translateY(${offsetY}px)`;
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function startGame() {
+      ensureAudio();
+
+      pool = [...CARDS];
+      started = true;
+      spinning = false;
+      stopRaf();
+      stopSpinSound();
+
+      // 카드 현황은 유지하고 싶으면 아래 2줄 주석 처리하면 됨
+      pickedHistory = [];
+      renderPickedList();
+
+      statusEl.textContent = "";
+      descBox.style.display = "none";
+      descBox.textContent = "";
+
+      buildReel();
+      updateRemain();
+      saveState();
+    }
+
+    function endGame() {
+      started = false;
+      pool = [];
+      spinning = false;
+      stopRaf();
+      stopSpinSound();
+
+      statusEl.textContent = "";
+      descBox.style.display = "none";
+      descBox.textContent = "";
+
+      reel.innerHTML = "";
+      document.getElementById("remain").textContent = "";
+
+      // 종료해도 현황 유지하고 싶으면 주석 처리
+      pickedHistory = [];
+      renderPickedList();
+
+      saveState();
+    }
+
+    function startSpin() {
+      ensureAudio();
+
+      if (!started) { alert("먼저 게임을 시작하세요"); return; }
+      if (spinning) return;
+      if (pool.length === 0) return;
+
+      buildReel();
+
+      descBox.style.display = "none";
+      descBox.textContent = "";
+
+      spinning = true;
+      statusEl.textContent = "돌아가는 중… 스탑을 눌러!";
+      stopRaf();
+      rafId = requestAnimationFrame(loop);
+
+      startSpinSound();
+    }
+
+    function stopSpin() {
+      ensureAudio();
+
+      if (!started) return;
+      if (!spinning) return;
+
+      spinning = false;
+      stopRaf();
+      stopSpinSound();
+
+      const i = Math.floor((SELECTOR_TOP - offsetY) / ITEM_HEIGHT);
+
+      const N = CARDS.length;
+      const visibleIndex = ((i % N) + N) % N;
+      const candidate = CARDS[visibleIndex];
+
+      let picked = candidate;
+      let shift = 0;
+      while (!pool.includes(picked) && shift < N) {
+        shift++;
+        picked = CARDS[(visibleIndex + shift) % N];
+      }
+
+      if (!pool.includes(picked)) {
+        statusEl.textContent = "남은 카드가 없습니다";
+        return;
+      }
+
+      pool = pool.filter(x => x !== picked);
+
+      statusEl.textContent = "선택 완료";
+      showOnlyPicked(picked);
+
+      descBox.textContent = CARD_DESC[picked] || "";
+      descBox.style.display = "block";
+
+      playSelect();
+
+      pickedHistory.push(picked);
+      renderPickedList();
+
+      updateRemain();
+      saveState();
+    }
+
+    // ===== 초기 로딩 =====
+    loadState();
+
+    // 초기 UI 반영
+    soundBtn.textContent = soundOn ? "🔊 사운드 ON" : "🔇 사운드 OFF";
+    renderScoreRows();
+    renderCounters();
+    renderPickedList();
+
+    // 메인 게임 상태(풀)는 새로고침 시 항상 초기화(원하면 저장도 가능)
+    pool = [...CARDS];
+    started = true;
+    buildReel();
+    updateRemain();
+  </script>
+</body>
+</html>
